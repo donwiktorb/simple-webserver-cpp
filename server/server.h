@@ -29,7 +29,7 @@ public:
 	bool ListenConnect();
 	bool AcceptConnect();
 	bool ConnectLoop();
-	bool DestroyConnect();
+	//bool DestroyConnect();
 
 	bool CloseSocket();
 
@@ -37,7 +37,7 @@ public:
 
 private: 
 
-
+	bool running = true;
 	std::map<std::string, std::string> responseData;
 	int received{ 0 };
 	int iResult{ 0 };
@@ -47,13 +47,13 @@ private:
 	SOCKET cs;
 	sockaddr_in service;
 
-  const char *headers = "HTTP/1.1 200 OK\n"
-  "Access-Control-Allow-Origin: *\n"
-  "Connection: Keep-Alive\n"
-  "Content-Type:text/html; charset=utf-8\n"
-  "\n"
+  const char *headers = "HTTP/1.1 200 OK\r\n"
+  "Access-Control-Allow-Origin: *\r\n"
+  "Connection: close\r\n"
+  "Content-Type:text/html; charset=utf-8\r\n"
+  "\r\n"
   "<html><head</head><body>sup</body></html>";
-
+  
 	int receiveBufferLength = 1024;
 	char receiveBuffer[1024];
 };

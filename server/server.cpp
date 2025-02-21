@@ -82,11 +82,13 @@ bool Server::ListenConnect() {
 
 
 bool Server::AcceptConnect() {
+	if (sock == INVALID_SOCKET) {
+		return false;
+	}
 	cs = accept(sock, NULL, NULL);
+	if (!running) return false;
 	if (cs == INVALID_SOCKET) {
 		printf("accept failed with error: %d\n", WSAGetLastError());
-		closesocket(sock);
-		WSACleanup();
 		return false;
 	}
 	
@@ -103,7 +105,7 @@ void getRequestHeaders(std::string requestData) {
 	
 	{
 		std::string delimiter = ":";
-		if (line.find(":", delimiter.size())) {
+		if (line.find(delimiter, delimiter.size())) {
 			std::string name = line.substr(0, line.find(":"));
 			std::cout << line << "\n";
 			std::string value = line.substr(line.find(":")+1);
@@ -117,7 +119,10 @@ void getRequestHeaders(std::string requestData) {
 
 bool Server::ConnectLoop() {
  do {
-
+	 if (cs == INVALID_SOCKET) {
+		 printf("Error: Trying to receive on an invalid socket! Connection was closed before!\n");
+		 return false;
+	 }
 	 received = recv(cs, receiveBuffer, receiveBufferLength, 0);
     if (received> 0) {
       printf("Bytes received: %d\n", 151);
@@ -129,7 +134,7 @@ bool Server::ConnectLoop() {
       if (iSendResult == SOCKET_ERROR) {
         printf("send failed with error: %d\n", WSAGetLastError());
         closesocket(cs);
-        WSACleanup();
+		cs = INVALID_SOCKET;
         return false;
       }
       printf("Bytes sent: %d\n", iSendResult);
@@ -138,24 +143,28 @@ bool Server::ConnectLoop() {
     else {
       printf("recv failed with error: %d\n", WSAGetLastError());
       closesocket(cs);
-      WSACleanup();
+	  cs = INVALID_SOCKET;
       return false;
     }
-
+	shutdown(cs, SD_BOTH);
+	closesocket(cs);
+	cs = INVALID_SOCKET;
   } while (received> 0);
 
   return true;
 }
 
 bool Server::CloseSocket() {
-
-
-	shutdown(sock, SD_BOTH);
-	iResult = closesocket(sock);
-	if (iResult == SOCKET_ERROR) {
-		wprintf(L"closesocket failed with error = %d\n", WSAGetLastError());
-		return false;
+	running = false;
+	if (sock != INVALID_SOCKET) {
+		shutdown(sock, SD_BOTH);
+		iResult = closesocket(sock);
+		if (iResult == SOCKET_ERROR) {
+			printf("closesocket failed with error = %d\n", WSAGetLastError());
+		}
+		sock = INVALID_SOCKET;
 	}
+
 	WSACleanup();
 	return true;
 }
